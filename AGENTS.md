@@ -1,308 +1,201 @@
-# 🔐 AI EXECUTION CONTEXT — ZERO-TOLERANCE MODE
+# Agent Execution Rules
 
-> This file defines **absolute behavioral rules** for any AI model operating in this workspace.
-> **You do not assume. You do not guess. You do not proceed unless explicitly told.**
->
-> Engineering standards live in `CODING_PROFILE.md`. Read it before any architecture or implementation decision. This file governs *how you are allowed to act*; the profile governs *what good work looks like*.
+This file defines the mandatory execution policy for agents working in the user's projects. `CODING_PROFILE.md` defines the engineering standard. `MEMORY_PROTOCOL.md` defines continuity between sessions. A task is complete only when the work was authorized, the requested outcome exists, and the applicable quality and verification requirements are satisfied.
 
----
+**Approval authorizes the agreed work. It does not waive the engineering standard. The agent may choose a compliant implementation; it may not authorize an exception, downgrade a quality failure, or redefine completion to accept its own result.**
 
-## 📚 0. PRECEDENCE AND CONFLICTS
+## 1. Authority and required context
 
-### ✅ Required:
+Read the governing context in this order before making architecture or implementation decisions:
 
-* Read, in order:
+1. This file, for execution policy and authority.
+2. `CODING_PROFILE.md`, for the engineering requirements and structural acceptance checks.
+3. `MEMORY_PROTOCOL.md` and the project's required memory: goals, current state, and recent day files.
+4. The current project's own instructions and authoritative specifications for the assigned work.
 
-    1. This file (absolute execution policy);
-    2. `CODING_PROFILE.md` (global engineering standard);
-    3. The project's `memory/` folder, as defined in `MEMORY_PROTOCOL.md` (goals, current state, recent days);
-    4. The current project's own instructions and source-of-truth documents (local context and scope).
+These required instruction and memory files are part of startup context. Reading them does not authorize unrelated repository discovery or changes. Verify remembered paths, versions, contracts, and live state against current evidence before relying on them.
 
-* Write to the project's memory as you work, as `MEMORY_PROTOCOL.md` requires. Writing memory is part of every task, not an optional extra, and is covered by the approval of the task it records.
+This file takes precedence where these documents overlap. Project instructions add local architecture, contracts, and scope; they do not replace, summarize away, weaken, or override the global rules. Permission to change a project document does not authorize changing these global instructions.
 
-* Project instructions **add** local context. They do not replace, summarize, weaken, or override these rules.
+Only the user may authorize a departure from a mandatory requirement. Do not interpret requests for speed, simplicity, initiative, or completion as permission to disregard one. Preserve the exact unlock requirements below. Ordinary choices among compliant implementations do not require an exception.
 
-### 🚫 Forbidden:
+When instructions conflict, stop at the affected boundary. Quote the conflicting requirements and their sources, explain what action is blocked, and ask the user to resolve the conflict. Do not silently choose a rule, invent a compatibility layer, or call a contradiction a trade-off. Continue independent work only when it is already authorized and does not depend on the unresolved decision.
 
-* Silently choosing between two rules that appear to conflict.
+## 2. Preserve the task and restrict access
 
-### ⚠️ On conflict:
+Establish the requested outcome, the requested kind of work, the authorized scope, and the accepted constraints from the user's instructions and current project records. Use the existing plan and memory; do not create another task ledger merely to restate them.
 
-* **STOP** and present the exact conflict to the user, quoting both sources. A contradiction is a reason to stop at that boundary and ask, not a reason to invent a compatibility layer or a silent interpretation.
+Discussion, review, planning, implementation, and delivery have different permissions. A request to explain or judge code does not authorize editing it. Answer at the level requested: a structural review must assess readability, organization, ownership, abstraction, and maintainability against the coding profile. Do not substitute a correctness audit or test report for that assessment.
 
----
+Keep the full objective and accepted constraints active throughout the task. A correction or new example refines the task unless the user explicitly replaces it. Do not optimize only for the latest example, drop earlier requirements, or convert feedback into a narrower definition of success.
 
-## 📁 1. FILE & DIRECTORY ACCESS POLICY
+### File and directory access
 
-### 🚫 Forbidden:
+Beyond the required startup context, access only files and directories explicitly named in the current instruction or included in a previously approved, active implementation plan. This restriction applies to reads, searches, scans, indexing, and writes. Scope searches before running them; do not scan the whole workspace to discover whether relevant material happens to exist.
 
-* Under **no circumstances** may you access, read, scan, index, or mention any file or directory containing `old/` in its path or name.
-* You must act as though the `old/` folder **does not exist** unless the user explicitly says the phrase:
+If the work needs additional context or files, identify the specific access needed and obtain authorization before crossing that boundary. A requirement to reuse existing code does not grant unrestricted access to search for it.
+
+Do not access, read, scan, index, or mention any file or directory containing `old/` in its path or name. Treat those paths as nonexistent unless the user explicitly says:
 
 > **ACCESS THE OLD FOLDER NOW**
 
-### ✅ Allowed:
+Exclude protected paths before a tool examines or reports them. Do not rely on filtering a tool's output after it has already accessed them. Unlocking this restriction does not authorize changes to those files or expand the task beyond the user's specified scope.
 
-* Only access folders and files that are:
+### Default state
 
-    * Mentioned explicitly in the current instruction;
-    * OR part of a previously approved and active implementation plan.
+Without an instruction to act, remain inactive. You may plan, ask for clarification, or wait. Do not infer a new task, generate code, alter files, begin implementation, or comment on logic or architecture unless asked. Once an approved task is active, the obligation to carry it through applies.
 
----
+## 3. Plan before implementation
 
-## 🧭 2. PLAN-FIRST ENFORCEMENT (NO AUTONOMY)
+Do not implement, modify, generate, or delete any code or file until a complete, structured implementation plan has been presented and the user has explicitly approved it. Required project memory writes are covered by the approval of the task they record, as described below.
 
-### 🚫 Forbidden:
+Use one plan to establish:
 
-* You may **not** begin implementing, modifying, generating, or deleting **any code or file** until both conditions are met:
+- **Outcome and scope:** what must become true, the files to be touched, and the operations and environments involved.
+- **Ownership and shape:** the responsible owner of each behavior, its real consumers, the relevant contracts, and the meaningful stages of the proposed operation.
+- **Engineering requirements:** how the proposed shape will satisfy the applicable coding profile requirements, including readable flow, complete ownership, reuse, and consistent state and interfaces.
+- **Failure and verification:** the relevant failure modes, focused tests, broader regression coverage when shared behavior changes, required build, and structural review.
+- **Completion and delivery:** necessary cleanup, documentation or memory updates, and any external action that will require its own permission.
 
-1. A complete, structured implementation plan has been written by you and approved by the user. The plan names the files touched, the owner of each behavior, and the failure modes involved.
-2. The user responds with an explicit go-ahead such as:
+Keep the plan proportional to the task while covering these decisions. Do not create a separate design ceremony, checklist system, or report for every function.
 
-   > **PLAN APPROVED — PROCEED**
+Implementation requires an explicit go-ahead for that plan, such as:
 
-### ✅ Once approved:
+> **PLAN APPROVED — PROCEED**
 
-* Carry the approved plan through to completion: implementation, tests, build, and cleanup. Do not stop at an issue list or a partial change unless blocked by a real external dependency or explicitly paused.
-* Anything outside the approved plan needs a new plan and a new approval.
+An accepted architecture, a plan already present in the repository, a prepared branch, or another agent's progress is not approval to modify files. Do not infer approval from those circumstances. If approval is unclear, stop and ask.
 
-### ⚠️ Clarification:
+After approval, carry the plan through implementation, verification, build where applicable, and cleanup. Do not stop at a list of findings, an unfinished patch, or a suggestion to continue. Routine decisions and steps already covered by the approved plan do not require repeated approval.
 
-* Do not infer approval from context. An accepted architecture, an existing plan document, or a prepared branch is **not** approval to modify code. If you're unsure, **STOP** and ask for explicit validation.
+Anything outside the approved plan requires an updated plan and new approval. An unexpected dependency, newly discovered consumer, or desirable refactor does not expand the authorized file set. Explain the required addition and its effect on the outcome before acting on it.
 
----
+## 4. Keep authorization narrow
 
-## 🎯 3. AUTHORIZATION IS NARROWLY SCOPED
+Permission is specific to the operation, files, version, environment, and external system the user named. Confirm the exact file set before expanding the assigned scope. Permission must cover the actual effect, regardless of whether a command, connector, browser, API, script, or delegated agent performs it.
 
-### ✅ Required:
+Do not treat adjacent actions as implicitly authorized:
 
-* Treat every permission as specific to the operation, files, version, environment, and external system the user named.
-* Confirm the exact file set before expanding beyond the assigned scope.
+- Permission to inspect an external system does not authorize mutating it.
+- Permission to delete one obsolete implementation does not cover its replacement or unrelated data.
+- Permission to use Git for a particular recovery does not become general Git permission.
+- Permission to change project documentation does not authorize changes to global rules.
+- Permission to prepare a change does not itself authorize pushing, publishing, deploying, merging, or releasing it.
 
-### 🚫 Forbidden:
+Before a materially broader, destructive, externally visible, or hard-to-reverse action, obtain the specific authorization that is missing. Do the already authorized preparation first so the user can review a concrete action and its consequence. Do not repeatedly request permission for an operation the user has already explicitly authorized within the same active scope.
 
-* Treating approval of one action as approval of adjacent actions, for example:
+When blocked, identify the exact missing permission, external dependency, or unresolved instruction. Keep completed work intact and continue independent authorized work where possible. Do not turn a boundary into permission to bypass it, and do not describe the blocked outcome as complete.
 
-    * Permission to use Git for one recovery is **not** general Git permission;
-    * Permission to delete one obsolete implementation does **not** cover its replacement or unrelated data;
-    * Permission to inspect an external system does **not** authorize mutating it;
-    * Permission to change a project document does **not** authorize changing these global rules.
+## 5. Git and commit controls
 
-* Taking a materially broader, destructive, externally visible, or hard-to-reverse action without asking first.
+Treat all Git commands and operations as disabled until the user explicitly says, in the current session:
 
----
+> **ENABLE GIT OPERATIONS NOW**
 
-## 🌿 4. GIT OPERATIONS — LOCKED BY DEFAULT
+This includes read-only operations and commands such as `git status`, as well as `git init`, `git clone`, `git add`, `git commit`, `git stash`, and `git push`. Using a hosting API, connector, browser, or another agent for the equivalent Git operation does not bypass this requirement.
 
-### 🚫 Forbidden:
+The exact phrase is required. Synonyms, inferred permission, a prepared branch, another agent's permission, or an earlier setup commit do not unlock Git. Once enabled, authorization remains limited to the operation and scope the user approved.
 
-* You must treat all Git commands and operations as **disabled and unavailable**.
+**Never push unless the user separately asks for a push, even when Git is enabled.** Enabling Git does not authorize unrelated repository writes, pull requests, merges, tags, deployments, or releases. Each must be covered by the user's specific instruction.
 
-* This includes (but is not limited to):
-  `git init`, `git clone`, `git add`, `git commit`, `git push`, `git status`, `git stash`, etc.
+When a commit is authorized, its message must contain only a clean, professional subject and body describing the actual changes. Do not add AI attribution or branding, generated-with labels, AI co-author lines, links to AI vendors, or mentions of AI assistance.
 
-### ✅ Allowed Only If:
+## 6. Code comments and stubs
 
-* You are explicitly instructed, in your **current** session, with the phrase:
+The only permitted code comment is a strict, actionable `TODO:` satisfying all three conditions:
 
-  > **ENABLE GIT OPERATIONS NOW**
+1. The code is incomplete.
+2. The comment specifies exactly what remains to be implemented.
+3. The function or containing structure is necessary for an existing interface or dependency.
 
-* No synonyms or inferred permission are valid. A prepared branch, another agent's Git permission, or an earlier setup commit does **not** grant you Git permission.
+Do not write explanatory comments, docstrings, style markers, reasoning notes, decision records, debug labels, or vague TODOs in code. Rationale belongs in the project's specification, decision record, or other appropriate documentation. Improve unclear code through its names, contracts, and structure rather than adding prohibited explanation around it.
 
-### ⚠️ Pushing:
+Every stub must have both a structural reason to exist and a valid specific TODO. Do not add speculative scaffolding, placeholder classes or modules for imagined needs, generic `TODO: implement` notes, or empty functions without a required implementation. Use an empty-body placeholder such as `pass` only when the language's syntax requires it for a structurally necessary incomplete body.
 
-* Even with Git enabled, **never push** unless the user separately asks for a push.
+A permitted stub records incomplete work; it does not satisfy a requirement for implemented behavior. Do not leave a required capability as a TODO and report that outcome complete.
 
----
+Check these restrictions in the produced code before handoff. A framework convention, review suggestion, or desire to explain a difficult implementation does not create an exception. If a mandatory external requirement conflicts with this policy, surface the conflict under section 1.
 
-## 🧼 5. CODE COMMENTS — HARD BAN POLICY
+## 7. Reuse and abstraction controls
 
-### 🚫 ABSOLUTELY FORBIDDEN:
+### Existing owners and packages
 
-* You must **never** write a comment in code **unless it is a strict `TODO:`**.
-* All the following are **prohibited**:
+Before writing new code, search the authorized codebase for an existing implementation. Extend the responsible owner instead of creating a parallel implementation. Do not create `Enhanced`, `V2`, `New`, or similar variants to avoid refactoring the existing owner.
 
-    * Explanatory comments
-    * Docstrings
-    * Style markers
-    * Notes about logic or reasoning
-    * Decision records or rationale
-    * Debug labels
-    * Non-actionable or vague `TODO`s
+For common or standardized capabilities, prefer an existing, proven open-source package when it is maintained with recent commits, stable rather than beta, and compatible with the project's language and license. Check the actual contract and suitability; familiarity with a package name is insufficient.
 
-### ✅ ONLY ALLOWED:
+Do not reimplement behavior already provided by a suitable, high-quality package or in-house implementation unless the user explicitly permits it or critical shortcomings have been documented and confirmed. If suitability or permission remains uncertain after examining the authorized evidence, ask whether the existing solution can be used. Do not silently choose a custom implementation.
 
-* A `TODO:` comment is allowed **only when**:
+### Evidence before reusable machinery
 
-    1. The code block is incomplete, AND
-    2. The `TODO:` explains exactly what needs to be implemented, AND
-    3. The function is structurally necessary (e.g., part of an interface or dependency)
+Code must be strongly DRY: do not deliver copy-pasted policy or parallel near-identical implementations of the same responsibility. Follow the coding profile's requirements for complete shared ownership and readable callers.
 
-### 📝 Where rationale goes instead:
+Introduce a reusable abstraction only when at least one of these triggers exists:
 
-* Architecture and product decisions, with their reasoning, belong in the project's documentation (a spec, decision record, or status document), **never** in code comments.
+1. Concrete behavior has been written, works, and has been tested; extract the demonstrated responsibility from that evidence.
+2. The same behavior is actually observed a second time during implementation; extract its owner and reuse it across the equivalent paths.
 
-### ✅ Example (ACCEPTED):
+The only exception to those timing rules is a shared contract established with certainty end to end. Identify the actual contract and participating consumers; a hypothetical future caller or familiarity with a pattern does not establish it. When the contract is uncertain, start with concrete behavior.
 
-```python
-def generate_invoice_pdf(order):
-    # TODO: Fetch customer details and render PDF using ReportLab
-    pass
-```
+These triggers permit considering an abstraction; they do not prove that its design is acceptable. It must also meet the coding profile's requirements at both the owner and its callers. Do not build speculative frameworks, base layers, or generic machinery. Do not combine unrelated responsibilities merely because their syntax resembles each other.
 
-### ❌ Examples (REJECTED):
+Repair the owning class of failure instead of adding a special case for one observed input. If that repair crosses the approved scope, request the necessary scope change rather than hiding the problem behind a narrower workaround.
 
-```python
-# Handles PDF generation  ❌ Unnecessary
-# TODO: implement  ❌ Too vague
-# render here  ❌ Not actionable
-```
+## 8. Execute the approved work without quality drift
 
-### Final Rule:
+Apply the coding profile while selecting the design and implementing each responsibility. Do not postpone its first meaningful application until a final cleanup pass. When the emerging structure violates a requirement, correct the design within scope before accumulating more mechanisms around it.
 
-> If there's no actionable `TODO:`, the function must remain **100% comment-free**.
-> Empty functions **must not** include even `pass` with a comment unless absolutely required by syntax.
+Keep the requested outcome, its consumers, and all accepted constraints in view. A passing test, smaller diff, faster implementation, confident explanation, or existing precedent does not authorize an unreadable design, incomplete owner, duplicated policy, or other mandatory quality failure.
 
----
+A user correction or review finding must be checked against the actual source and governing contract. Distinguish a valid finding from one proposed repair. Adopt the repair that satisfies the owning responsibility and the approved scope; a reviewer's suggestion is not permission to change either.
 
-## 🧩 6. STUBS & TODOs — TRACEABLE INTENT ONLY
+Delegated work inherits the same task, scope, access restrictions, standards, and verification requirements. Delegation does not transfer permissions that the recipient lacks. The coordinating agent remains responsible for inspecting the integrated result; a subagent's claim of completion is not verification of the delivered artifact.
 
-### ✅ Required:
+Continue through the whole approved outcome until it is complete, the user pauses it, or a concrete blocker prevents progress. Do not ask the user to finish ordinary implementation or cleanup that the approved task already includes.
 
-* Every stub (placeholder function/class/module) must have:
+## 9. Verify behavior and structure before completion
 
-    * A valid, specific `TODO:` as defined above
-    * A structural reason to exist
+Verification must establish both the behavior and the engineering quality claimed. Neither replaces the other.
 
-### 🚫 Forbidden:
+### Required tests and builds
 
-* No generic placeholders like:
+After completing a coherent code change, and before declaring the affected work complete:
 
-    * `# TODO: implement this`
-    * `def something(): pass`
+1. Run focused tests for the changed behavior.
+2. Run an appropriate broader regression slice when shared code changes.
+3. Confirm that all required test runs pass.
+4. Build the relevant module or package when applicable.
+5. Resolve failures within scope, or report the exact blocker before proceeding past the affected completion gate.
 
-* No speculative scaffolding. Only create stubs **with a clear, intended implementation.**
+A regression test protecting against a specific defect must be observed failing for that defect and passing after the fix. Report the fail-then-pass evidence, not only a green run. Use the safe regression-verification procedure in `CODING_PROFILE.md`.
 
----
+Do not skip required testing because of time pressure, apparent simplicity, or confidence in the logic. Do not weaken assertions, fake production capabilities, or loosen production behavior to obtain a passing result. A skipped, unavailable, or unrun mandatory check remains missing evidence and a completion blocker; disclosure does not convert it into a pass.
 
-## 🔁 7. DRY VIA EMERGENT ABSTRACTION
+For documentation-only changes, verify the affected content, references, and applicable document conventions. This does not invent a requirement to run an unrelated application test suite.
 
-### ✅ Required:
+### Required structural review
 
-* Code must be strongly DRY. No copy-paste duplication; no parallel near-identical blocks.
-* Abstraction is the goal, but it is timed on **evidence**, via exactly two triggers:
+Read the finished change against the structural acceptance checks in `CODING_PROFILE.md`, including the responsible implementation and its real callers. Check explicit output restrictions, including the comment and stub rules, in the artifact itself. Merely reading or repeating the instructions does not establish compliance.
 
-    1. The concrete code is written, works, and is **tested** → then lift it into a reusable abstraction.
-    2. A repetition is **observed** while coding (the same thing a second time) → extract it and reuse it everywhere.
+Use the existing formatter, linter, and architectural checks where they enforce a requirement. Passing them does not establish readability or complete ownership. Renaming a helper, moving a block, adding a wrapper, or explaining the result does not resolve a structural violation unless the resulting code actually satisfies the requirement.
 
-* Solve the owning **class** of failure, not a patch for the one observed input.
+Perform the independent review required by the coding profile for substantive changes. It must examine structure as well as behavior. Validate findings against evidence; do not invent defects to prove the review occurred. Do not describe self-review as independent review.
 
-### 🚫 Forbidden:
+Use the existing plan, verification tools, and ordinary completion report to enforce these gates. Do not create arbitrary quality scores, source-shape tests, or another review framework. Recheck the affected work after a correction; stop repeating a clean review when there is no changed implementation, new evidence, or unresolved requirement.
 
-* Abstracting before there is working, tested code or an actually observed repetition.
-* Building frameworks, base layers, or generic machinery in anticipation of needs that do not exist yet.
+### Completion decision
 
-### ⚠️ The only exception:
+Declare the requested outcome complete only when its behavior, affected contracts and consumers, structural quality, mandatory tests and builds, required reviews, authorized cleanup, and requested delivery satisfy the applicable requirements.
 
-* A shared contract you are **certain** holds end-to-end may start abstract. The bar for "certain" is high. When in doubt, go concrete first.
+An unmet mandatory condition leaves that outcome incomplete or blocked. Do not relabel it a nonblocking limitation, defer required structural work to the user, or claim that reporting the problem satisfies the requirement. Only the user can authorize a departure from the standard.
 
-### Final Rule:
+Distinguish preparation from delivery. A local change is not a remote pull request, a build is not a published release, and an attempted external action is not a verified result. Inspect the requested artifact in its actual destination before reporting it delivered, under the required permissions.
 
-> Make it work → make it right (abstract) → reuse. Never abstract-first-and-hope.
+## 10. Preserve continuity and report the result
 
----
+Read and write project memory as `MEMORY_PROTOCOL.md` requires. Memory updates are part of the approved task they record and do not need a second approval. Record consequential user decisions promptly, preserve their wording, and keep the current project state accurate. Follow the protocol's separate rules for current records and append-only daily history; do not replace it with a second memory format.
 
-## 🧪 8. TESTING AND BUILDING — MANDATORY ON COMPLETION
+Keep necessary architecture and product rationale in the appropriate project documents. Do not turn every command, discarded experiment, or routine implementation choice into permanent documentation. Project details do not belong in the global rules unless the user explicitly asks to generalize them.
 
-### ✅ Required:
+The completion report must state the resulting behavior or deliverable, the consequential changes and their purpose, the verification actually performed, and any material remaining limitation or blocker. State clearly when the requested outcome is incomplete. Use evidence and inspected results rather than confidence, effort spent, or the number of tools that ran.
 
-* After completing any code change, you **must**:
-
-    1. Run the focused tests for the changed behavior;
-    2. Run a broader regression slice when shared code changed;
-    3. Validate that all tests pass;
-    4. Build the relevant module or package (if applicable);
-    5. Report any test failures or build issues instead of proceeding.
-
-* A load-bearing regression test must be **observed failing** against the defect and **passing** after the fix. Report that fail-then-pass evidence, not just the green run.
-
-### 🚫 Forbidden:
-
-* Do **not** assume the code works without verification.
-* Do **not** skip testing due to time, simplicity, or logic confidence.
-* Do **not** weaken tests, fake production capabilities, or loosen production behavior to make a run green.
-* There are **no exceptions**.
-
----
-
-## 📦 9. REUSE OVER REINVENTION — PACKAGE-PRIORITY MANDATE
-
-### ✅ Required:
-
-* You **must prefer** a battle-tested, open-source package over writing custom implementations **whenever**:
-
-    * The feature is common or standardized (e.g., validation, date formatting, API requests);
-    * The package is:
-
-        * Maintained (recent commits),
-        * Stable (not beta),
-        * Compatible (license and language match)
-
-* Before writing new code, search the codebase for an existing implementation and extend it rather than creating a parallel one.
-
-* ✅ If in doubt, ask:
-
-  > "Can we use X instead of implementing this?"
-
-### 🚫 Forbidden:
-
-* You **must not** reimplement what is already solved by an existing, high-quality package or an existing in-house implementation unless:
-
-    * Explicit permission is given to do so;
-    * OR the package has critical shortcomings that are documented and confirmed.
-
-* Creating "Enhanced", "V2", "New", or similar variants of existing code. Refactor the original instead.
-
----
-
-## ⛔ 10. DEFAULT MODE: INACTIVE
-
-> If you are not told to act, your status is:
-
-```
-AI STATUS: WAITING FOR INSTRUCTION
-```
-
-### ✅ You may:
-
-* Plan
-* Ask for clarification
-* Wait
-
-### 🚫 You may NOT:
-
-* Infer intent
-* Generate code
-* Alter files
-* Begin tasks
-* Comment on logic or architecture **unless asked**
-
----
-
-## 🏷️ 11. COMMIT MESSAGE ATTRIBUTION — FORBIDDEN
-
-### 🚫 ABSOLUTELY FORBIDDEN:
-
-* You must **never** add any AI attribution, branding, or co-authorship to commit messages.
-
-* This includes (but is not limited to):
-
-    * `🤖 Generated with ...`
-    * `Co-Authored-By:` lines naming an AI model or assistant
-    * Any link to an AI vendor
-    * Any mention of AI assistance in the commit message
-
-### ✅ Required:
-
-* Commit messages must be **clean and professional**, as if written entirely by the user.
-* Only include the commit subject and body describing the actual changes.
+The report may explain the engineering choices. The code itself must provide the readability, coherent ownership, and maintainability required by the coding profile.
