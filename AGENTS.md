@@ -30,12 +30,13 @@ The passphrases below are deliberate locks against accidental approval. Their wo
 | `PLAN APPROVED — PROCEED` | Implement the specific complete plan already presented to the user. |
 | `ENABLE GIT OPERATIONS NOW` | Use Git for the identified task and scope in the current session. |
 | `ACCESS THE OLD FOLDER NOW` | Access the identified protected paths within the authorized task. |
+| `PHASE APPROVED — <name>` | Implement every change inside the named phase contract already presented to the user (section 3). |
 
 An invocation is valid only when **all** of these conditions hold:
 
 1. **The user issues it directly as an authorization instruction in the current session.** It must refer to a specific pending action or presented plan. The phrase appearing while discussing, reviewing, or editing these rules does not grant permission.
 2. **The passphrase is written by the user as their own words, in capitals, unquoted.** The words and their order must match. These variations are accepted, and only these:
-   - any dash between `APPROVED` and `PROCEED`: `—`, `–`, or `-`;
+   - any dash after `APPROVED`: `—`, `–`, or `-`;
    - several passphrases on one line, separated by commas, semicolons, or `and`, optionally followed by a short scope note on the same line, such as `PLAN APPROVED - PROCEED, ENABLE GIT OPERATIONS NOW, push only to my branch`;
    - one evident typing error in a single word, such as `NABLE GIT OPERATIONS NOW`. Before acting on it, the agent states which gate it read the phrase as.
 
@@ -117,6 +118,29 @@ An accepted architecture, a plan already present in the repository, a prepared b
 After valid plan approval and satisfaction of the other applicable gates, carry the plan through implementation, verification, build where applicable, and cleanup. Do not stop at a list of findings, an unfinished patch, or a suggestion to continue. Routine decisions and steps already covered by that valid approval do not require repeated approval.
 
 Anything outside the approved plan requires an updated plan and a fresh, exact `PLAN APPROVED — PROCEED` for that version. An unexpected dependency, newly discovered consumer, or desirable refactor does not expand the authorized file set. Explain the required addition and its effect on the outcome before requesting the phrase. A casual agreement to the explanation does not approve the expanded plan. Obtain any separately required Git or protected-path authorization as well.
+
+### Phase contracts
+
+For iterative work such as design iteration, UI tuning, or a refactor pass, the agent may propose a phase contract instead of a plan for each change. The contract has this shape, followed by one consequence card for the whole phase:
+
+```
+PHASE CONTRACT: <name>
+Goal:          what must be true when the phase is done
+In scope:      the exact folders and files the agent may change
+Allowed:       the kinds of action covered, such as edit, create, run the dev server, tests, or build
+Out of scope:  anything the user wants explicitly excluded
+Done when:     the finishing condition
+```
+
+The passphrase `PHASE APPROVED — <name>`, issued under section 1 with the contract's name, approves the contract. It counts as plan approval for every change inside the contract; no separate plan or approval is requested per step.
+
+These actions are outside every contract, even when listed in it: deleting data, pushing, merging, publishing, deploying, spending money, changing an external or shared system, and changing these rules. Each still requires its own authorization and consequence card. Git inside a phase requires `ENABLE GIT OPERATIONS NOW` given with the contract, and covers local operations only.
+
+When a change would reach outside the contract, stop that change and propose an amendment: the changed contract lines and a new consequence card. The amendment requires a fresh `PHASE APPROVED — <name>`. Until it is approved, the out-of-contract work is not done; work inside the contract may continue.
+
+During the phase, keep a short running log of the changes made. The phase ends when its finishing condition is met, the user says the phase is done, the session ends, or the contract is replaced. At the end, report one summary of what changed, what was verified, and what remains open.
+
+A phase contract shortens approval; it does not relax standards. The coding profile, the comment and stub rules, and the testing and build requirements of section 9 apply to the work inside a phase as to any other work.
 
 ## 4. Keep authorization narrow
 
