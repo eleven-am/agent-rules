@@ -1,676 +1,346 @@
 # Coding Profile
 
-This document captures the user's engineering profile across projects. Every coder or agent working with the user should read it before making architecture or implementation changes. Project-specific instructions may add constraints, but they do not override these general principles unless the user explicitly says so.
+This profile defines the engineering standard for work across the user's projects. Read it before making architecture or implementation decisions. Apply it with the current project's instructions and authoritative specifications.
 
-This profile defines what good work looks like. How an agent is allowed to act (plan approval, Git, comments, testing gates) is governed by `AGENTS.md`, which takes precedence wherever the two touch.
+`AGENTS.md` governs authority, scope, approvals, Git, code comments, and mandatory test and build gates. It takes precedence wherever these documents overlap. `MEMORY_PROTOCOL.md` governs session continuity. This profile grants no additional permission to inspect, change, delete, publish, or release anything.
 
-## Core Standard
+Project instructions supply local architecture, contracts, and requirements. Keep those details in the project. Change this global profile only when the user explicitly asks to generalize a lesson across projects. Surface instruction conflicts as `AGENTS.md` requires; engineering judgment does not authorize silently overriding a mandatory rule.
 
-The user values code that is consistent, explicit, maintainable, and hard to misuse. The goal is not cleverness or minimal edits. The goal is a codebase where the right place for a behavior is obvious, repeated logic is encapsulated, and different entry points do not quietly drift apart.
+## 1. Engineering objective
 
-Systems the user is building should be treated as serious production systems. They should have stable internal contracts, clear ownership boundaries, and predictable failure modes.
+**Deliver the requested behavior correctly and completely, while minimizing the effort required to understand, trust, operate, and change the resulting system over time.**
 
-## Global Principles Versus Project Instructions
+Readability and maintainability are part of the deliverable. Apply this standard while choosing the design, writing the implementation, and verifying the result. Do not treat structural quality as optional cleanup after the feature works.
 
-This profile contains principles that should travel with the user across projects. Project-specific architecture, product goals, test matrices, runbooks, and quality contracts belong in that project's own documentation.
+The finished code should reveal the structure of the problem: its concepts, responsibilities, rules, and failure modes. Remove the accidental complexity accumulated during exploration. A reader should not have to reconstruct the agent's investigation to understand the solution.
 
-Do not insert a project's local instructions, links, terminology, or current work plan into this global profile merely to make the project guidance easier to discover. A project is not entitled to modify the user's global profile. Change this document only when the user explicitly asks to generalize a lesson across their work.
+These are concurrent acceptance requirements. They must remain visible in every substantive decision:
 
-When applying the profile:
+| Quality | Required result |
+| --- | --- |
+| Correctness and completeness | The actual requirements hold through the real execution path, including relevant failure conditions and operational constraints. |
+| Readability and comprehension | A competent engineer can follow intent, control flow, state changes, and failure behavior without unnecessary mental reconstruction. |
+| Conceptual integrity | The implementation expresses one coherent design with clear responsibilities and respected boundaries. |
+| Encapsulation, DRY, and abstraction | Shared knowledge and behavior have authoritative owners; callers express intent through meaningful contracts. |
+| Minimal necessary complexity | Each mechanism earns its ongoing cost through a concrete responsibility, requirement, or failure it addresses. |
+| Consistency | Related paths use the same concepts, contracts, conventions, and shared infrastructure. |
+| Maintainability and change locality | A change reaches the responsible owner and its real consumers without requiring unrelated code to understand that responsibility. |
+| Engineering judgment | Trade-offs are grounded in the actual system, evidence, and the user's constraints. |
 
-- Read the global principles first.
-- Read the current project's own instructions and source-of-truth documents separately.
-- Apply both, with the project document supplying local context rather than rewriting the global rule.
-- If a local rule appears to conflict with a global principle, surface the conflict instead of silently choosing one.
-- Keep examples project-neutral unless a named project is necessary to explain the principle.
+The agent may choose how to satisfy this standard. It may not waive, reinterpret, or lower the standard to accept its own implementation. Functional correctness does not compensate for unreadable structure, fragmented ownership, incomplete encapsulation, duplicated policy, or unnecessary machinery. A passing test suite, a confident explanation, and an existing precedent do not excuse a structural violation.
 
-## Product Outcomes Over Supporting Machinery
+Treat required security and data integrity, authorized scope, explicit contracts, and every applicable engineering requirement here as constraints. Choose among compliant designs by their total burden of comprehension and change over the system's lifetime. Consider the implementation, callers, tests, operations, and dependencies together.
 
-The requested product behavior is the goal. Test harnesses, evaluators, migration helpers, audit records, compatibility layers, dashboards, reports, and other supporting machinery are means to that goal. They are not automatically valuable because they make a process look rigorous.
+An instruction to prefer a design is a choice rule among compliant alternatives. An applicability condition identifies the kind of work covered; it does not let the agent opt out. A permitted technique still has to meet the other requirements. An explanation must show how the design satisfies them, rather than supply a reason to disregard them.
 
-Before adding supporting machinery, state:
+Only the user may authorize a departure from a mandatory standard. When compliance is blocked by scope, an external contract, or a real instruction conflict, identify the exact condition and its consequence. Continue independent authorized work, but do not silently relax the condition or claim the affected outcome is complete. Ordinary implementation choices within the standard remain the agent's responsibility.
 
-- What production outcome it helps improve or protect.
-- What concrete failure it detects or prevents.
-- Why a simpler existing mechanism is insufficient.
-- Its ongoing cost in code, storage, compute, operator attention, and maintenance.
-- When it will be removed if it is temporary.
+The shortest implementation, smallest diff, fewest files, and most abstractions are not independent goals. Choose them only when they serve the engineering objective. Preserve required behavior and evidence when simplifying.
 
-If these questions cannot be answered concretely, do not build the machinery.
+## 2. Readability is a design requirement
 
-Do not let a measurement, testing, or audit system become larger or more sophisticated than the production behavior it exists to improve. When most engineering effort goes into proving that a tool ran while the product remains unimproved, the work has drifted away from its purpose.
+Write for the competent engineer who will encounter the code without the conversation that produced it.
 
-Use one current tool by default. Do not create a sequence of versioned harnesses, runners, adapters, reports, or databases when the tool has no external compatibility obligation. Improve it in place, remove the obsolete implementation, and continue. Versioning is justified only when versions must genuinely coexist, an external consumer depends on an older contract, or an immutable historical artifact is itself an explicit product requirement.
+### Make the domain visible in the principal flow
 
-Operational evidence and product-quality evidence are different. Logs, traces, hashes, accounting, and reproducible execution can prove what ran. They do not prove that the output was useful or that the product works well. Never present the sophistication of supporting machinery as evidence of product quality.
+Model the operation through named inputs, outputs, responsibilities, and steps. A reader following its principal flow must be able to identify what the system is doing, in what order, and where each decision belongs without first reconstructing collection plumbing, callback construction, or storage mechanics.
 
-## Resource-Conscious Engineering
+Give each function a coherent responsibility. Calling a function an entire feature does not establish cohesion: distinguish the operation coordinating work from the policies and transformations it coordinates. Keep validation, state transitions, consequential side effects, and failure handling visible at the level that owns them.
 
-Storage, memory, compute, provider calls, tokens, and engineering attention are real design constraints. Do not assume unlimited hardware, money, or time.
+An application operation must express its domain stages at a consistent level of detail. Substantial query construction, ranking policy, classification, enrichment, and mapping belong in named implementations at their responsible boundary. Do not interleave their internal mechanics with the coordinating flow. A query implementation may contain detailed SQL; its application caller should rely on the query's meaningful contract.
 
-The default posture is:
+Use existing owners and keep related implementation close. This requirement does not mandate a new file, interface, service, or layer for each step. Do not move a confusing block behind `processData` or another vague wrapper and call that encapsulation. The extracted operation must have a clear purpose, a useful contract, and an independently understandable implementation.
 
-- Do not retain duplicate implementations, databases, build outputs, raw captures, or generated reports without a current use.
-- Keep compact summaries instead of complete raw evidence unless the raw material is needed to reproduce a named failure.
-- Scope diagnostics to the failure under investigation and clean them up when that investigation ends.
-- Avoid dedicated infrastructure for temporary development work when an existing safe boundary is sufficient.
-- Estimate a mechanism's continuing cost before building it, including cleanup and maintenance.
-- Prefer one bounded, reusable tool over repeated one-off machinery.
+### Keep data flow direct
 
-Resource discipline does not mean accepting weak contracts, unsafe behavior, or fake tests. It means spending rigor where it protects production behavior instead of accumulating machinery and artifacts by default.
+Express distinct transformations in an order that a reader can follow. Use meaningful intermediate values when a nested expression makes the reader mentally evaluate several accumulation or transformation steps to discover the domain action. Do not compress an operation into nested calls merely to reduce line count.
 
-## Authorization Is Narrowly Scoped
+Represent fixed domain cases directly through named values, meaningful types, straightforward control flow, or an established declarative representation. The supported cases and their meaning must be discoverable from that representation. Do not build a local predicate, callback, or factory mechanism to manufacture a fixed set of choices that can be expressed directly. A finite set of different cases does not establish a need for configurable execution machinery.
 
-Treat permission as specific to the operation, repository, files, version, environment, and external system the user named. Approval to perform one action does not authorize adjacent actions merely because they are convenient parts of the same workflow.
+Put independently meaningful domain transformations and policies in named functions or methods at the owning layer. Do not hide them as inner helper definitions inside the operation coordinating them. Nested functions are allowed for an existing API's callback contract or necessary lexical capture; neither allowance permits a hidden business policy or another orchestration layer inside the callback. An ordinary sort comparator or event callback can adapt arguments and call the named owner.
 
-Examples:
+Higher-order composition is appropriate when required by an existing framework, library interface, or product contract that actually accepts variable behavior. Preserve that contract, but keep domain policy directly identifiable. Do not invent such a requirement to justify machinery already written.
 
-- Permission to use Git for one recovery does not grant general Git permission.
-- Permission to delete one obsolete implementation does not authorize deleting the current replacement or unrelated generated data.
-- Permission to inspect an external system does not authorize mutating it.
-- Permission to change a project document does not authorize changing the global profile.
+### Carry meaning through names and representations
 
-When the requested scope is exact, preserve that exact scope. Ask before taking a materially broader, destructive, externally visible, or difficult-to-reverse action.
+Use the domain's vocabulary consistently. Names must reveal the actual responsibility in context. General words such as data, items, process, and handle do not identify a domain responsibility by themselves. Short loop variables are acceptable where their referent is immediate; ambiguous naming across a larger operation is not.
 
-## No MVP Framing
+When an operation produces several distinct domain results with interchangeable representations, return them through named fields or established semantic types. Do not encode their identities solely through return order, parallel arrays, or undocumented positions. A caller must be able to identify the result it is using without consulting a separate ordering convention. Ordinary language conventions such as Go's `(value, error)` and `(value, ok)` remain appropriate; they already identify different roles. Preserve a required external signature at its boundary and express domain meaning clearly inside it.
 
-The user dislikes MVP framing. Do not treat requested product work as validation work unless the user explicitly says the goal is validation.
+Make interfaces state what callers provide, what they receive, and what can fail. Creation, persistence, refresh, deletion, and other consequential state changes must be apparent from the operation's contract and the flow invoking it. Do not hide them behind a name promising only lookup, inspection, or calculation. Renaming a tangled operation does not repair unclear ownership; make the responsibility coherent as well.
 
-If the user asks to build a system, assume the product direction is intentional. The job is to build the correct foundation from day one, even if that takes longer.
+Use established language idioms and the project's mandatory conventions. Do not introduce clever compression, unexplained special cases, unnecessary type machinery, or representation choices justified only by a general preference. Choose representations according to their actual identity, ownership, lifetime, and mutation requirements.
 
-Do not propose shortcuts, throwaway implementations, temporary architecture, or reduced correctness in the name of speed. Scope can be sequenced, but the architecture, contracts, ownership boundaries, authorization model, persistence model, and failure behavior must be designed as the real system from the beginning.
+Judge local readability and system coherence together. A readable caller should be able to rely on an understandable contract; it should not need a private copy of the implementation to remain understandable.
 
-A smaller first delivery is acceptable only when it is a complete, coherent slice of the intended final system. It must not rely on fake boundaries, hidden fallbacks, weak contracts, or code that is expected to be ripped out later.
+Common operations must be straightforward to call and invalid use difficult. A reader must not need a hidden sequence of calls, the agent's explanation, or a chain of forwarding wrappers to recover the responsibility being performed. Required domain complexity may need documentation; prose cannot compensate for avoidable confusion in the implementation. Follow `AGENTS.md` for comments and docstrings; durable rationale belongs in project documentation.
 
-MVP language is usually the wrong frame. Prefer discussing the correct system shape, ownership boundaries, implementation phases, what is complete now versus deliberately deferred, and what must be true before the system is considered done.
+## 3. Ownership, encapsulation, and abstraction
 
-## Contracts As Coordination Boundaries
+### Give each responsibility an authoritative owner
 
-Public contracts are team coordination surfaces, not only serialization details. Protobuf files, service definitions, envelope shapes, and shared specs should be correct enough for other teams to build against, even when one implementation is still catching up internally.
+Every business rule, fact, validation policy, transformation, and lifecycle decision needs a clear owner. Other components call that owner or derive from its contract. They do not maintain independent approximations of its behavior.
 
-When changing a contract:
+Encapsulation means the owner contains the rules and state transitions that make its responsibility correct. Expose the operation callers need. Keep responsibility-specific failure handling inside that boundary, so unrelated layers do not need to understand or repair it.
 
-- Read the current source-of-truth spec again before editing.
-- Do not rely on memory of an older contract.
-- Define the public shape accurately and completely.
-- Make unsupported runtime behavior fail explicitly instead of leaving the contract ambiguous.
-- Avoid blocking other teams with incomplete or stale protocol surfaces.
+Encapsulation is complete only when callers can express intent without reproducing the owner's decision sequence. A helper that leaves callers responsible for the same selection rules, sequencing, exceptions, or invariants has extracted mechanics without fully owning the behavior. Move those decisions into their real owner; do not require each caller to assemble the responsibility from fragments.
 
-If a spec says a field or service exists, the protocol should expose it in the right place. If the implementation cannot support it yet, the implementation should say so deterministically.
+When a behavior changes, identify the authoritative place where its meaning changes. Consumers may require coordinated updates; one owner does not imply that a cross-system change touches only one file.
 
-## Cross-Repository Contract Discipline
+### Keep shared knowledge and behavior DRY
 
-A product rarely exists in one repository or process. Client libraries, command-line tools, control planes, workers, domain services, documentation, and frontends may all participate in one behavior. A change is not complete merely because one repository has been updated.
+Look for existing owners and implementations before adding code. Extend the existing owner and route equivalent entry points through it. Do not leave repeated business rules, parallel validation policy, or sibling implementations that can drift.
 
-When a contract crosses repositories:
+Consolidate the complete shared policy, including its ordering, tie-breaks, special cases, and failure behavior. Extracting one calculation or predicate does not satisfy DRY when callers still duplicate the surrounding rule. Inspect equivalent callers and confirm that they delegate the complete decision to its owner. Different input types, data sources, or transports do not justify copying a policy with the same meaning and change obligations.
 
-- Identify every producer and consumer before changing the shape.
-- Verify every relevant declaration surface, compiler or build step, runtime bundle, execution path, domain service, documentation surface, and frontend assumption.
-- Do not let each layer invent aliases for the same concept.
-- Prefer one canonical shape and reject loose aliases once the system has moved to the new contract.
-- Treat "works in one repo" as incomplete until the other participating repos either support the contract or explicitly reject it.
+Extract the real shared concept behind repetition. A useful abstraction makes callers more uniform, contains the shared rules, and reduces the combined complexity of the implementation and its callers. Similar text is evidence to investigate; it does not by itself establish that independent domain responsibilities belong together.
 
-If a repository is out of scope for the current change, report the mismatch clearly instead of silently assuming another agent will resolve it.
+Sharing a low-level API does not establish a shared policy. A readiness probe and a management command may share authentication or encoding while retaining different lifecycle and failure semantics. Consolidate the common responsibility completely without combining distinct operations into an artificial general-purpose interface.
 
-## Transport And Operations
+Follow the abstraction timing required by `AGENTS.md`: use working, tested concrete behavior or observed repetition as evidence; begin with an abstract shared contract only when it is established end to end. Neither a hypothetical future caller nor familiarity with a pattern justifies speculative machinery.
 
-HTTP, gRPC, MCP, CLI, or any future transport should be adapters over the same operation layer.
+If genuine shared behavior remains duplicated, find the right boundary. If an extraction merely moves lines into a vague helper or introduces flags for unrelated cases, revisit the concept being extracted. Do not exchange duplication for an abstraction that obscures the domain.
 
-Transport code should:
+### Require an abstraction to pass at both ends
 
-- Parse transport-specific input.
-- Build operation request structs.
-- Call the operation.
-- Return the operation response using the shared response mechanism.
+Accept an abstraction only when all of the following hold:
 
-Transport code should not:
+- Its name and contract identify a real responsibility or invariant.
+- Its implementation contains the decisions belonging to that responsibility.
+- Its callers communicate domain intent without reconstructing its mechanics or supplying repeated policy fragments.
+- The current behavior or demonstrated repetition establishes its need under `AGENTS.md`.
+- It reduces the combined burden of understanding and changing the owner and its callers, without introducing speculative variation.
 
-- Own business policy.
-- Own resource dispatch.
-- Own validation semantics beyond transport parsing.
-- Reimplement operation logic.
-- Shape custom response envelopes when the operation already has a protobuf or shared response shape.
+Reduced repetition alone is insufficient. A generic callback interface, configurable pipeline, or strategy factory fails this standard when it hides a small fixed operation behind more concepts than the operation requires. Do not add a framework to avoid writing a focused domain operation.
 
-When a transport has a shared response encoder or contract, sibling endpoints should use it consistently. Custom envelopes and one-off error handling are smells unless the endpoint deliberately belongs to a different contract.
+Do not satisfy the call-site requirement by hiding complexity in an unreadable helper. Review the owner and representative callers together. Likewise, do not make a caller locally convenient by duplicating its owner's policy.
 
-## Operation Ownership
+### Split by responsibility
 
-Operations are the canonical application boundary. If a behavior matters across transports, it belongs in operations or below operations, not in a controller/server/tool handler.
+Prefer modules with meaningful, complete responsibilities and small, useful interfaces. Split an overloaded module along the concepts it mixes. Do not split a cohesive operation merely to reduce file length, or keep unrelated responsibilities together merely to reduce file count.
 
-Operations should own:
+A wrapper earns its place by owning a real boundary, invariant, translation, or responsibility. A module that only forwards arguments without adding such a boundary usually adds navigation rather than understanding.
 
-- Scope and access expectations.
-- Request validation policy.
-- Dynamic dispatch for operation-owned concepts.
-- Error meaning.
-- Calls into domain contexts.
-- Response shape.
+Reuse the existing implementation instead of creating an `Enhanced`, `New`, `V2`, `Public`, or `Internal` sibling of the same behavior. Express supported variation through the existing owner when the responsibility is the same; configuration must not become a collection of unrelated modes. Legitimately distinct responsibilities need explicit boundaries rather than disguised copies.
 
-Controllers and transport servers should not know enough to make policy decisions. They should hand off to operations.
+## 4. Contracts, consistency, and change
 
-## Encapsulation And DRY
+### Preserve meaning across boundaries
 
-The user prefers repeated patterns to be extracted, abstracted, and encapsulated when the extracted concept is real.
+Read the current authoritative specification before changing a contract. Keep public declarations accurate and complete enough for consumers to build against. An implementation that cannot yet support declared behavior must reject it explicitly; do not hide the capability, invent its semantics, or return fabricated success.
 
-Good encapsulation:
+Treat response shapes, error meaning, authorization, lifecycle, and operational cost as parts of the contract. A function becoming blocking, expensive, fallible, or remote changes its callers' obligations even when its signature stays the same. Revisit relevant callers for lock scope, thread or event-loop use, deadlines, cancellation, failure handling, and assumptions about completion.
 
-- Gives a repeated behavior one owner.
-- Makes call sites smaller and more uniform.
-- Reduces future drift across HTTP, gRPC, MCP, and internal callers.
-- Makes adversarial/regression tests easier to write at the right level.
+For contracts spanning repositories or components, identify every relevant producer and consumer: declarations, generated clients, compilation, runtime bundles, execution paths, domain services, documentation, and frontend assumptions. Use one canonical shape and vocabulary. Each participant must implement the new contract or explicitly reject it. Report out-of-scope mismatches and their effect on completion.
 
-Bad encapsulation:
+### Evolve the existing system coherently
 
-- Creates vague utility modules with no domain ownership.
-- Hides simple logic behind indirection without reducing drift.
-- Splits a cohesive behavior across files just to make files shorter.
+Use established shared clients, encoders, errors, validation, authentication, caching, and execution infrastructure. Related entry points should follow the same ownership and response conventions. Treat an unexplained exception as a design problem to resolve.
 
-If 60% of a function is repeated across places, look for the concept underneath the repetition. Extract that concept, not just the text.
+Consistency does not require reproducing a demonstrated defect. Correct it at the responsible boundary within the approved scope, update the affected consumers, and explain the reason. Do not introduce a parallel architecture or expand a task into an unrelated rewrite.
 
-## Refactor, Don't Duplicate
+When requirements or instructions conflict, expose the conflict and the proposed interpretation. A specification's purpose can reveal an incorrect enumeration, but it does not grant permission to silently change the specification or override an approval boundary.
 
-When an existing implementation is insufficient, extend it. Do not create a sibling.
+### Keep one current path unless coexistence is required
 
-- Never create "Enhanced", "Public", "Internal", "V2", or similar variants of an existing handler, executor, repository, service, or client. Add the capability to the original, or make the difference a configuration option on one implementation.
-- Prefer configuration over variants: one handler with configurable features beats three handlers that each grew their own features.
-- Use the project's existing shared infrastructure (HTTP client, error types, validation, caching, worker pools, authentication) instead of constructing a local copy with different behavior.
-- Before creating a new file, search for similar types, functions, and interfaces. Ask whether the functionality already exists, whether it can be extended, and whether the new file is really a second version of something.
+When an authorized change replaces a conceptually dead path, remove or explicitly reject that path and its obsolete aliases, formats, and implementations. Do not preserve it through hidden translation or fallback.
 
-```go
-// Wrong: a sibling that will drift from the original
-type EnhancedBaseExecutor struct {
-    *BaseExecutor
-    metrics *StageMetrics
-}
+Compatibility needs a real consumer, retained data, or external obligation. Any temporary coexistence needs an owner, tests, a migration plan, and a cutoff. A deliberately ongoing compatibility obligation needs an explicit supported contract.
 
-// Right: the original gains the capability
-type BaseExecutor struct {
-    metrics  *StageMetrics
-    profiler *StageProfiler
-}
-```
+For a clean rebuild, a pre-launch system without retained data obligations, or a deployment the user has explicitly said will be discarded, use a hard cutoff. Do not invent backfills, upgrade paths, or historical-data protections. Improving an implementation does not itself require versioning it.
 
-## Isolation, Ownership, Encapsulation, And Abstraction
+## 5. Complexity, reuse, and resources
 
-These four ideas are one design discipline, with ownership at the center:
+Build the requested product with production foundations: real ownership, contracts, authorization, persistence, and failure semantics. Do not reframe product work as an MVP or validation exercise unless requested. Sequence scope through complete, coherent slices without introducing throwaway correctness or speculative future features.
 
-- **Ownership:** every policy, fact, lifecycle decision, validation rule, and transformation has one authoritative executable owner. Other components call that owner; they do not maintain approximations of its behavior.
-- **Isolation:** keep a responsibility and its failure modes inside the boundary that owns it. A defect in one concern should not require unrelated layers to understand or repair that concern.
-- **Encapsulation:** expose the operation or contract callers need while hiding the internal rules and state transitions that make it correct. Callers express intent rather than reproduce mechanics.
-- **Abstraction:** extract a shared concept only when the concept is real across callers. The abstraction should route work to the correct owner and make drift harder; it should not be a vague helper or an extra layer with no authority.
+Every significant mechanism must have a concrete reason to exist. For defensive mechanisms, name the failure prevented and the test that demonstrates protection. For an abstraction, name the responsibility it encapsulates or the understanding and change burden it removes.
 
-When several layers need the same rule, do not copy the rule into prompts, schemas, validators, repair code, persistence mappers, and tests independently. Identify the source of truth, make the other layers derive from it where possible, and add boundary checks where derivation is impossible. A contract change is incomplete until every producer and consumer either uses the owner or explicitly rejects the new shape.
+Identify the source of each configuration decision. When one setting must agree across configuration files, command arguments, runtime objects, and other representations, resolve its value once and derive those representations from the owner. Repeating the same literal at each output does not establish a shared source. Extract values because they represent the same decision and must change together, rather than because their spelling happens to match.
 
-A useful review question is: **if this behavior changes tomorrow, what single place should be edited?** If the honest answer is several unrelated places, ownership is still fragmented and the design needs another pass.
+Before introducing a dependency, layer, retry, cache, gate, configuration option, or supporting tool, establish:
 
-## Modularization Must Improve Ownership
+- The current outcome, obligation, or failure it addresses.
+- Why an existing or simpler mechanism is insufficient.
+- Its continuing cost in complexity, maintenance, latency, storage, compute, money, and attention.
+- Its removal condition if it is temporary.
 
-The user does not want files split just to make more files. Splitting is valuable only when it creates clearer ownership, removes meaningful repetition, or makes future changes easier to reason about.
+Use this reasoning to choose the design. Record consequential decisions concisely; do not create a separate justification report for every function. Unclear purpose calls for investigation. Remove confirmed unnecessary machinery within the authorized scope rather than retaining it through speculation.
 
-Good modularization:
+Reuse the project's existing implementation first. For common or standardized capabilities, follow `AGENTS.md`'s preference for maintained, stable, compatible packages over reinvention. Evaluate the actual contract, license, integration, and maintenance cost; a familiar package name is not sufficient evidence of suitability.
 
-- Makes each module responsible for one coherent concept.
-- Gives shared behavior a single owner.
-- Keeps call sites smaller without hiding policy in vague helpers.
-- Makes it easier to test the behavior at the right boundary.
-- Reduces the chance that sibling paths drift.
+Supporting machinery must remain proportionate to the production outcome it protects. Test harnesses, evaluators, dashboards, migration helpers, audit records, and reports do not create value merely by looking rigorous. Keep one current tool where versions have no coexistence obligation. Improve it in place and remove obsolete machinery within scope.
 
-Bad modularization:
+Bound diagnostic work and retained artifacts to a current use. Prefer compact summaries, retain raw evidence when needed to reproduce a named failure, and clean temporary infrastructure up when its purpose ends. Spend resources on confidence in the product rather than repeated demonstrations that tools ran.
 
-- Moves lines around without clarifying responsibility.
-- Creates thin wrapper files that do not own a real concept.
-- Forces readers to jump through many files to understand one simple behavior.
-- Splits a cohesive operation only because a file became long.
+## 6. State, failure, and lifecycle integrity
 
-Prefer fewer, deeper modules with real ownership over many shallow files. A split should be defensible as a maintainability improvement, not merely as line-count management.
+### Keep authoritative state authoritative
 
-## God Files
+Read or derive facts from their owner. Construct emitted data from that owner instead of maintaining fields that must stay manually synchronized. Do not mirror authoritative state for convenience.
 
-A god file is a module that accumulates too many unrelated responsibilities until every change has to pass through it. The user dislikes god files because they hide ownership and make regressions likely.
+Every retained field must have a current behavioral consumer, persistence obligation, or explicit external contract. Assigning a field, copying it into another internal record, or asserting its existence in a test does not establish a production use. Check readers as well as writers. Do not store a derived or remote-looking fact merely because it might be useful later. Within the changed responsibility, remove unused state and the record conversions or update machinery that exist only to maintain it.
 
-Do not solve god files by scattering code randomly. Split by responsibility:
+A required cache, snapshot, or replica must remain explicitly derived, with defined freshness, invalidation, and reconciliation semantics. It must not become a competing authority. Prefer direct derivation when those additional obligations are unnecessary.
 
-- A module should own one coherent concept.
-- A boundary should be deep enough to justify its existence.
-- Callers should not need to know the internals of every sub-step.
+Each state owner must use one explicit update and publication model for a given piece of state. Apply that model across creation, update, removal, cleanup, and callbacks. Do not replace a collection on some paths while silently mutating the published collection on others. Building or modifying an unpublished working copy before publishing it is compatible with replacement; mutating an already published snapshot is not. Review in-place mutations as well as assignments when checking consistency.
 
-When a file is growing, ask what concepts it is mixing. Extract the concept with the clearest boundary first.
+Reject stale lifecycle work at the owner. In an in-process object lifecycle, retain and validate the identity of the instance that scheduled the work. Across processes, use the system's authoritative version or lifecycle token. Do not let a copied identifier stand in for proof that the work still belongs to the current lifecycle.
 
-## Consistency Is A Feature
+### Make invalid states and interleavings difficult to create
 
-If one part of the system follows a pattern, adjacent parts should follow it too. Inconsistent exceptions are treated as bugs until proven otherwise.
+Prefer ownership and representation that make dangerous transitions impossible or harmless. Use immutable snapshots, replacement instead of shared mutation, and stable local references where they actually simplify the lifecycle.
 
-Examples:
+These techniques do not by themselves establish concurrency safety. Publication, mutation, and access must satisfy the language and runtime's memory model. Use synchronization when required, at the smallest boundary that protects the actual invariant. Do not remove a necessary lock or atomic operation in the name of simplicity.
 
-- If one endpoint returns the shared operation response, sibling endpoints should not preserve old custom envelopes.
-- If one transport calls the application operation layer, sibling transports should not call lower-level domain modules directly for the same behavior.
-- If the application operation owns not-found meaning, transport adapters should not duplicate that policy.
-- If resource dispatch belongs to an application operation, a transport adapter should not maintain a second dispatch table.
+Describe any accepted residual interleaving and its observable consequence precisely. It is acceptable only if it preserves the required contract; apparent rarity or difficulty reproducing it is not a justification.
 
-Consistency is not cosmetic. It prevents three versions of the same system from developing under HTTP, gRPC, and MCP.
+### Make failure and operational state truthful
 
-## Complexity Must Name Its Failure
+A required dependency remains required. If its capability is unavailable, fail clearly. A fallback is acceptable only when deliberately part of the product contract, visible, and correct for the promise being made.
 
-Every mechanism earns its place by naming the concrete failure it prevents and pointing at the regression test that pins that failure. This applies to gates, retries, cooldowns, caches, defensive branches, fallback paths, and configuration knobs equally.
+Distinguish unknown, unavailable, unsupported, empty, and successful results. Do not substitute `0`, `false`, an empty collection, or a success-shaped response merely to make a consumer compile or a test pass.
 
-If nobody can name the failure, the mechanism is deleted. Deletion is the default state. Complexity argues its way in; simplicity does not argue its way back.
+Represent execution honestly: inline, queued, running, completed, or failed. Identify who owns retries and reconciliation. When debugging, use the actual path, attempts, traces, and state transitions rather than assuming the implementation matches its intended design.
 
-Weak defenses include:
+Platform identity, tenant scope, grants, invocation identifiers, audit correlation, and accounting context remain platform-owned. Reject or authoritatively replace conflicting caller-supplied fields. Developer input must not silently override trusted metadata.
 
-- It already exists.
-- It might be useful someday.
-- It makes the code more robust in general.
-- Removing it feels risky.
+### Finish the whole lifecycle
 
-A defensible mechanism can state when it runs, what failure it prevents, which test proves it, and what breaks if it is removed. A mechanism that cannot answer those questions is not load-bearing infrastructure. It is unowned complexity, and it becomes a simplification target, not a permanent fixture.
+The component starting asynchronous work may report actual synchronous effects and a stable job reference. The component doing the work owns its final domain results and usage facts; the accounting owner reconciles and aggregates them. Do not invent final completion, storage, usage, or billing facts at the initiating boundary.
 
-## One Fact, One Owner
+Do not block a synchronous response on unrelated background completion unless required by the contract. Expose missing job references as an observability limitation. Keep credentials and secret payloads out of completion metadata.
 
-Every fact in the system has exactly one owner. Other components ask the owner. They do not keep copies.
+Deletion must define the fate of durable rows, stored assets, active deployments, queued work, credentials, retained audit or billing records, frontend state, and external provider resources. Stop obsolete work from recreating deleted state where applicable. Preserve required retention obligations and authorized scope; partial cleanup must not be reported as complete deletion.
 
-A cached copy of another component's state is only correct while a set of unwritten synchronization rules hold. Those rules break silently, usually on the path nobody tested, and the system ends up holding two answers to one question. Mirrored state is how a response ends up dead in one layer while another layer still reports it alive.
+## 7. Architecture where applicable
 
-When a new "who owns this fact" question appears, the answer is a pointer at the existing authority, not a new field. If a copy seems necessary for convenience or performance, the design needs another pass:
+Apply these boundaries to the responsibilities that actually exist. They do not mandate a separate service, process, or framework for every row.
 
-- Derive the value at the call site instead of storing it.
-- Pass the owning object instead of copying fields out of it.
-- Construct emitted data from the owner directly, so mismatched values are unrepresentable.
+### Services, transports, and data
 
-For lifecycle decisions, identity beats identifiers. A late callback should present the object it was created with, and the owner should reject it if that object is no longer current. Comparing copied ids is how stale work mutates live state.
+HTTP, gRPC, MCP, CLI, and other transports adapt to the same application operations. A transport parses its input, constructs the operation request, invokes the operation, and uses the shared response mechanism. It does not independently own business policy, resource dispatch, validation meaning, error semantics, or custom response envelopes for an existing shared contract.
 
-## Safety By Construction
+Application operations own the application boundary: scope and access expectations, request validation policy, operation-level dispatch, error meaning, domain calls, and response shape. Domain owners retain their domain behavior and authoritative data.
 
-When state can be observed from more than one execution context, prefer designs where the dangerous interleaving is impossible or harmless over designs where it is guarded. A lock, a flag, or a reservation adds a rule that every future caller can break. Construction removes the rule.
+| Responsibility | Owner when that layer exists |
+| --- | --- |
+| What developers may declare | Declaration or client layer |
+| Local validation, compilation, packaging, deployment preparation | Build or deployment tooling |
+| Authorization, scheduling, durable orchestration, reconciliation, quota, billing, durable audit | Control plane |
+| Executed work and direct tool or vendor calls | Execution worker |
+| Domain data, behavior, and final domain usage facts | Domain service |
+| Presentation and user workflow | Frontend |
 
-Concrete moves, in preference order:
+Be explicit about who decides, executes, retries, reconciles, audits, and accounts. Transport parsing and local checks do not replace authoritative enforcement.
 
-- Rebind, do not mutate. Replacing a collection wholesale means every reader sees either the old state or the new state, never a mid-mutation view. Clearing it in place means an iterator somewhere crashes.
-- Take a local reference before check-then-use. Reading a shared field twice around a decision is a race; reading it once into a local is not.
-- Emit from the owner. Constructing outputs directly from the owning object makes mismatched values unrepresentable instead of validated.
-- Only then reach for coordination, and keep it at the smallest scope that closes the named failure.
+Use the designated data model and store for the problem. Prefer operations native to the authoritative store over loading data into application code to reconstruct another data model. Graph operations belong in the graph system when the architecture has one; transactional state remains with its transactional owner. Do not introduce another store merely because a data-model label sounds suitable.
 
-A residual race is acceptable only when its harm can be named and shrugged at in one sentence ("a trim may be partially undone by a request that arrives mid-trim, which is the correct outcome anyway"). If the residual harm cannot be named, the design is not done. Do not add coordination machinery for a residual whose harm is acceptable — that is complexity without a failure.
+### React frontend conventions
 
-## Failure Philosophy
+These are explicit engineering conventions for applicable React work. General appeals to simplicity do not authorize silently discarding them. The frontend owns presentation and user workflow; authoritative business policy remains behind application operations.
 
-The user prefers explicit failure over hidden fallback when a dependency or architectural assumption is required.
+**State and composition.** Derive state from its source during render, put imperative work in event handlers, and use `useSyncExternalStore` for external state. Do not use `useEffect` as the default state-management mechanism or to synchronize duplicate state. Keep data fetching and external state coordination in their owning data or state layer.
 
-A system should not silently pretend that a missing primary dependency is optional when the product design requires it. Fallbacks are acceptable only when they are deliberate, visible, and preserve the promised correctness contract.
+Each component calls exactly one imported composed view-model hook. That hook composes data hooks, URL state, local UI state, and selectors into the view's contract. Primitive hooks, query hooks, and additional hooks belong inside that composition, not alongside it in the component. Define hooks in the project's hook layer, never inline in a component or route file.
 
-When the architecture designates a particular store, service, or execution path as authoritative, use it as authoritative. If its required capability is unavailable, fail clearly instead of drifting into a weaker implementation whose behavior differs silently.
+**Routes and screens.** Route files own route matching, search validation, guards, and loaders. A route's page component is layout composition using imported feature components and its imported view-model. It contains no data fetching, hook definitions, or business logic. Feature components own the screen's substantial UI. Page-data hooks wrap typed feature queries; view-model hooks combine that data with presentation state and selectors.
 
-## No Legacy Paths Without Explicit Product Need
+Do not create an empty route wrapper around one child. Point the route directly at the imported component unless a page component contributes actual layout or composition.
 
-The user prefers hard cutoffs over compatibility layers when the old path is conceptually dead. Translation layers, fallback adapters, and dual v1/v2 execution paths are future drift unless there is an explicit product or migration requirement.
+**Memoization.** Use `useMemo` for derived values and `useCallback` for functions passed as props, used in dependency arrays, or otherwise sensitive to identity. Keep this source convention; do not strip it under a general instruction to avoid optimization. Maintain correct dependencies and pure calculations. Memoization must not be necessary for correctness: React may discard cached values, and compiler behavior is not a substitute for sound state ownership.
 
-When replacing a contract or execution path:
+**Complete shared components.** Encapsulate recurring UI patterns as purpose-built components owning their state, layout, keyboard behavior, focus, accessibility semantics, and loading, empty, error, and unauthorized states. Callers supply intent. Do not leave repeated JSX behind a thin hook wrapper, distort an unrelated generic component, or expose internals solely to accommodate an isolated caller.
 
-- Remove the old path if callers are no longer supposed to use it.
-- Reject old versions clearly instead of silently translating them.
-- Do not keep compatibility code just because it is convenient.
-- Do not preserve a deprecated path without tests and a named owner.
+**Typed data by feature.** Use the project's selected typed contract client and one standard query/cache layer. Organize field selections, query and mutation declarations, mappers, cache keys, invalidation, and data hooks by feature. Centralize schema generation or introspection and scalar mappings. One shared executor owns transport, credentials, security headers, typed errors, unauthorized behavior, retries, and other cross-cutting policy. Feature hooks use it; components do not fetch directly.
 
-Backward compatibility is allowed when it is a deliberate product decision. It should not appear accidentally because an agent was afraid to delete old code.
+**Stable, honest view shapes.** Map transport contracts to view shapes in the feature data layer. Preserve the intended screen during backend changes; do not delete JSX simply to silence type errors. Hydrate optional fields with semantically valid defaults or explicit unavailable states. Unknown amounts are not zero; unsupported capabilities are not successful empty results. If the contract cannot support the intended screen, expose that mismatch and resolve it at its owner. Keep field translation and fallback business logic out of components.
 
-Do not describe a path as "transition" or "migration" unless there is a real migration plan with named owners, tests, and a cutoff. If the user says the system is moving to a new version only, old persisted formats, old bundle shapes, old aliases, and old execution paths should be removed or rejected unless they explicitly ask to preserve them.
+## 8. Verification must support the claim
 
-When a system is pre-launch, being rebuilt from a clean state, or explicitly has no historical data that must survive, assume a hard cutoff. Do not invent upgrade paths, backfills, compatibility shims, parallel implementations, or historical-data protections for deployments the user has said will be deleted. Improving code does not by itself require versioning it. Replace the old implementation with the improved one and keep one current path.
+Functional correctness, architectural quality, and readability require appropriate evidence. A green test run does not establish all three. Review the design and read the changed code as a maintainer as well as exercising its behavior.
 
-If preserving an older path is proposed anyway, identify the real caller, real data, or external obligation that requires it. Fear of deletion, generic migration practice, or the possibility that an old deployment might exist is not sufficient evidence.
+### Review structural quality explicitly
 
-## Internal Concepts Versus User-Facing Docs
+Apply the structural requirements while choosing boundaries and implementing each responsibility. Before declaring completion, read the finished change again without relying on the explanation or exploration that produced it. Inspect the owner and its real callers together. Do not defer the first meaningful readability review to the user.
 
-Documentation must match its audience. Internal coordination mechanisms may be essential between components, but that does not mean users should see or understand them directly.
+The implementation must answer these questions through its structure:
 
-When writing docs:
+| Check | Required evidence in the code |
+| --- | --- |
+| Domain flow | The principal operation exposes its meaningful stages, and each stage's implementation can be located directly. |
+| Abstraction | Named responsibilities replace repeated mechanics; fixed choices do not require readers to reconstruct factories or callback chains. |
+| Complete ownership | Equivalent consumers delegate the entire shared policy, including sequencing, ranking, exceptions, and failure meaning. |
+| Semantic interfaces | Names, types, and result fields preserve the identities of inputs, outputs, and consequential side effects. |
+| State discipline | Retained state has current consumers or explicit obligations, and every write follows the owner's update model. |
+| Consistency | Related paths use the same contracts, configuration decisions, conventions, and applicable architectural boundaries. |
+| Change locality | A concrete change to one responsibility reaches its owner and necessary consumers without repeating the decision in unrelated code. |
+| Necessary complexity | Each added mechanism has a demonstrated role, and simpler existing mechanisms have not been bypassed without evidence. |
 
-- Match the audience of the existing document.
-- Keep public docs focused on what users configure, do, observe, and troubleshoot.
-- Keep internal contracts, scheduling details, authorization material, audit machinery, and service-coordination details in internal specifications or architecture docs.
-- Do not expose internal machinery in user-facing docs just because it exists.
-- Follow the tone, vocabulary, and structure of nearby docs instead of inventing a generic documentation voice.
+Reject the implementation while a required condition is unmet. Neither renaming a helper, moving a block to another file, adding an explanatory paragraph, nor reporting passing tests resolves a structural violation by itself. Inspect the resulting code to establish that the responsibility and comprehension burden actually changed.
 
-If users never directly configure or act on a concept, public documentation should not pretend they do.
+Use the existing formatter, linter, or architectural checks for conventions they can enforce. Verify explicit restrictions that tooling does not cover as part of this same review. A rule being present in the instructions is not evidence that the output follows it. Do not invent numerical readability scores, arbitrary size quotas, source-shape tests, or a new review framework to substitute for understanding the implementation.
 
-## Operational Honesty
+Keep this review bounded. Correct identified violations within scope and check the affected owner and callers again. A clean, evidence-supported result ends the pass; do not manufacture findings or repeat it without a changed implementation or unresolved issue. Record only consequential findings and their resolution in the ordinary completion report.
 
-The system should be honest about what it is doing. If work is executed inline, say inline. If work is queued, say queued. If retry belongs to the caller, worker, domain service, or control plane, the code and metadata should identify that owner.
+### Test the real behavior at the right boundary
 
-Hidden special cases are a design smell even when they appear to work. A path that only queues under some conditions, retries only in a narrow internal case, or falls back to a weaker behavior should be explicit in naming, contracts, logs, and tests.
+- Test observable contracts through public interfaces. Avoid coupling tests to private fields, incidental call sequences, or the implementation being replaced.
+- Keep setup small, each test's intent clear, and assertions meaningful. Use scenario names that state what is established. Establish the normal case and then its failure conditions.
+- Test a rule at its owning boundary. Operation tests cover operation behavior; transport tests cover parsing and response translation. Exercise all promised interface methods where applicable.
+- Mock real external or expensive boundaries and hard-to-reproduce failures. Use fast in-process implementations directly. Generate mocks with the project's standard tooling, and verify that fakes expose the same capabilities and semantics as production.
+- Separate fast isolated tests from integration and end-to-end tests. Add realistic workloads where the claim involves scale, concurrency, accumulated state, long inputs, failure recovery, or multiple users and steps.
 
-When debugging operational behavior, prefer facts from traces, logs, attempts, and ownership boundaries over assumptions about what the code was intended to do.
+Do not present evidence from one layer as proof of another. A mock does not establish that the production integration works. Execution logs and hashes establish what ran; useful results and real behavior establish product quality. Include relevant side effects, missing behavior, failure handling, latency, and resource use in the evaluation.
 
-## Platform-Owned Metadata
+### Demonstrate regression protection honestly
 
-Developer input should not override platform-owned metadata when correctness, accounting, audit, authorization, or security is involved.
+Run the focused tests and required builds specified by `AGENTS.md`. Run an appropriate regression slice when shared behavior changes. For a regression test guarding a specific defect, observe it fail for that defect and pass after the correction. Use the original failing implementation or a controlled local reintroduction, without overwriting unrelated work or affecting live systems.
 
-Examples of platform-owned metadata include:
+Change expectations when the intended contract changes and explain why. Do not loosen assertions, accept obsolete shapes after a hard cutoff, fake unavailable production capabilities, or weaken production semantics to make tests green.
 
-- Invocation identifiers.
-- Run identifiers.
-- Organization, project, tenant, or principal identity.
-- Accounting context.
-- Audit correlation fields.
-- Platform-issued capability or grant scope.
+If an environment-dependent check cannot run, report it as missing evidence and identify what remains unverified. A skip is not a pass. Follow `AGENTS.md` for required gates; an unavailable mandatory gate remains a completion blocker.
 
-If user code can provide a similar field, the platform should either reject it or overwrite it with authoritative metadata. Do not let developer-supplied metadata win silently over the runtime's own identity and accounting context.
+### Review independently and proportionately
 
-## Ownership Across Components
+Substantive changes receive an independent adversarial pass aimed at refuting their concrete claims. Re-run relevant gates, read the whole change, and examine plausible failure scenarios. That pass must also evaluate the structural requirements above; a correctness-only review does not establish design quality. A supported clean review is valid; inventing defects is not rigor. If required independent verification is unavailable, report verification as blocked rather than describing self-review as independent.
 
-Architecture decisions should identify which component owns each responsibility. The user dislikes semantic debates that do not end with an explicit owner.
+Validate findings against current source, contracts, and reproducible behavior. Separate a real finding from the reviewer's proposed fix. Resolve disagreement with evidence, and choose the repair that fits the owning responsibility. Reject fictitious compatibility mappings and unsupported semantics even when they would satisfy a review checklist.
 
-Use the actual system boundaries, but keep the following default distinctions clear when those layers exist:
+Match review depth to risk. Security boundaries, billing, public contracts, irreversible data changes, and releases need stronger evidence. Use the lightest process capable of exposing the named failure. Do not repeat a stable review without changed code, new evidence, or a concrete unresolved risk.
 
-- A declaration or client layer owns what developers are allowed to express.
-- A build or deployment tool owns local validation, compilation, packaging, and deployment preparation.
-- A control plane owns authorization, scheduling, durable orchestration state, reconciliation, quota, billing, and durable audit records.
-- An execution worker owns the work it performs and its direct calls to tools or vendors.
-- A domain service owns its domain data, domain behavior, and final domain usage facts.
-- A frontend owns presentation and user workflow, not hidden business policy or contract translation.
+## 9. Working discipline and durable knowledge
 
-These are responsibility categories, not mandatory services. Combine or split them according to the real architecture, but do not let ownership become ambiguous.
+Before designing a change, establish the requested outcome, current implementation, authoritative contracts, responsible owners, real consumers, and relevant failure modes. Read the surrounding code and project memory as required. Verify remembered paths, versions, and system state against current evidence.
 
-When discussing a design, explain:
+Choose the coherent system shape before accumulating patches. Address the class of failure at its owner. If a repair requires a second owner, a special-case alias, a hidden fallback, or a weaker test, reconsider the design before building more machinery around it.
 
-- What component owns the decision.
-- What component executes the work.
-- What component records the audit trail.
-- What component owns retries and reconciliation.
-- What component is the source of truth for accounting or usage.
+Before committing to a substantial shape, identify the domain steps, the owner of each policy, the concepts represented by its inputs and outputs, and the existing consumers it must serve. Use the required implementation plan for this reasoning; do not add a separate planning ceremony. Revise a proposed shape that already requires callers to reproduce policy, obscure fixed cases, or keep redundant state synchronized.
 
-If the answer is "several components kind of do it," the design probably needs another pass.
+Use engineering judgment to choose among implementations that satisfy the standard. Explain consequential trade-offs through actual effects on comprehension, ownership, drift, and continuing cost. Do not use a trade-off explanation to waive a mandatory requirement. Resolve ordinary implementation choices from evidence; escalate genuine instruction conflicts or scope changes under `AGENTS.md`.
 
-## Frontend Architecture When Applicable
+Once implementation is approved, carry it through the authorized implementation, verification, and cleanup. Continue until the intended outcome is complete or a concrete external dependency, missing permission, or user pause blocks it. Report the exact blocker and completed work without presenting partial progress as completion.
 
-The frontend is a presentation and workflow layer over the same operation contracts every other transport uses. It should not carry business policy, hidden fallbacks, or ad hoc translation of contract shapes. The rules below make that concrete.
+Keep the full objective and accepted constraints active throughout the task. A new correction refines that standard; it does not replace earlier requirements with whichever concern was mentioned most recently.
 
-### No `useEffect`
+When the user challenges a design, investigate the underlying concern about ownership, readability, consistency, hidden failure, or unnecessary complexity. Answer at the level requested: a structural review must examine how the code communicates and organizes its responsibilities, rather than drift into an unrelated bug audit or test report. Explain what the mechanism owns, when it runs, why it is needed, and how its structure meets the standard. Do not defend it merely because it exists, and do not turn a design question into an unsolicited patch.
 
-In React frontends, do not reach for `useEffect` as the default state-management tool. Derive state during render. Put imperative work in event handlers. Use `useSyncExternalStore` for state that lives outside React.
+Record consequential architecture and product decisions in concise project documentation with the decision, rationale, and what it supersedes. Keep the current account corrected in place. Follow `MEMORY_PROTOCOL.md` for daily history, user decisions, handoffs, and outstanding work; current architecture records and session history serve different purposes. Do not preserve every command, discarded experiment, or tool revision as a permanent ledger.
 
-`useEffect` is where drift, races, and stale closures accumulate. If a piece of state seems to need `useEffect`, the state probably belongs elsewhere: in a data hook, in a store subscribed via `useSyncExternalStore`, in a router search param, or in a handler invoked at the moment the intent is expressed. When effects are used to sync duplicate state or to reconcile with URL or server state, the symptoms are freezes on tab return, duplicate fetches, subscription leaks, and stuck loading spinners. Design the state so the derivation is direct.
+Match documentation to its audience. Public documentation explains what users configure, do, observe, and troubleshoot. Internal specifications explain internal contracts, coordination, and operational mechanisms. Use the existing document's vocabulary and style, and keep global guidance free of project-specific plans or links.
 
-### One composed view-model hook per component
+## 10. Completion means the whole engineering outcome
 
-Each component calls exactly one hook: a composed view-model such as `useXyzView`, defined in the project's hook layer and imported — never declared inline in the component or route file. That hook is responsible for composing data hooks (`useXyzPageData`), URL-state primitives, local UI state, and any derived selectors the view needs. Components must not call the primitives directly, and must not call a second hook alongside the view-model — `useState`, `useIsMobile`, query hooks, and the like all move inside the view-model.
+Declare completion only when:
 
-Why this matters:
+- The requested behavior is implemented through its real boundaries, with required failure and lifecycle semantics.
+- The changed code satisfies the explicit structural acceptance checks: readable domain flow, complete ownership, meaningful abstractions, semantic interfaces, consistent state and conventions, localized change, and necessary complexity.
+- Every producer and consumer needed for the requested outcome satisfies the agreed contract.
+- Required tests, builds, and reviews are complete and support the stated claims.
+- Replaced paths and temporary machinery are addressed within scope, and necessary project records reflect the current result.
+- Any requested release or deployment artifact has actually been produced and inspected under the required permissions.
 
-- The component stays readable and testable at the view layer.
-- Every consumer of the same view shape gets the same composition, so edge cases (loading, empty, unauthorized, partial data) are handled once, not per component.
-- The view-model hook becomes the single seam for testing the presentation behavior without a DOM.
+A structural violation, missing required capability, consumer update, or verification gate leaves the affected outcome incomplete or blocked, including when the affected repository is outside the authorized scope. Reporting the problem does not satisfy the requirement. The agent cannot relabel a mandatory quality failure as a nonblocking limitation. Any departure requires the user's explicit authorization under the authority rules above; other limitations may accompany a completed result only when the promised outcome and required gates are satisfied.
 
-If a component looks like it needs a second primitive hook, that primitive belongs inside its view-model, not next to it.
+For authorized release work, verify the requested remote artifact and report the relevant commit, version, image tags, and digest. A local build is not a published release. Git, pushes, tags, deployments, and external writes remain subject to `AGENTS.md` and the user's specific authorization.
 
-### Route files are thin; screens and view-models have separate owners
-
-A route file is wiring, not a screen. Its page component is layout composition only: it calls one imported view-model and renders imported feature components. It holds no hook definitions, data fetching, or business logic. Route matching, search validation, guards, and loaders are the route file's real job.
-
-The screen's substance lives elsewhere:
-
-- `components/<feature>/` owns every real UI block — the form, the table, the dialog, the page body. Each substantial component calls its own view-model hook.
-- The view-model layer owns hooks in two tiers: a page-data hook wraps the feature's typed data query and returns the data shape; a view hook composes that page data with UI state, URL state, and derived selectors into the object the component consumes.
-
-A hook is never defined inline in a route or component file — it is always imported from the project's hook layer. To change what a screen shows, edit the feature component and its view-model; change the route file only when routing changes.
-
-Do not author an empty wrapper component. If a route's screen is exactly one imported component with no route-level layout to add, point the route directly at that component. An inline page component earns its place only when it adds real composition such as a shell, header, or multiple children. One child and nothing else means wire the child directly.
-
-### Memoize as source-level discipline
-
-`useMemo` for every derived value. `useCallback` for every function that is passed as a prop, into a dependency array, or otherwise identity-sensitive. This is not premature optimization; the React Compiler handles the runtime perf work. The point is diff hygiene and predictable identity so equality checks, memoized children, and dependency arrays stay stable and reasoning stays local.
-
-"Don't over-optimize" means do not stack load-bearing optimizations on top of memoization. It does not mean strip memoization.
-
-### Encapsulation into purpose-built shared components
-
-Every recurring UI pattern becomes a purpose-built shared component that hides all its moving parts: state, layout, keyboard handling, focus management, ARIA semantics, empty and loading and error branches. Callers pass intent, not internals.
-
-Anti-patterns to reject:
-
-- Stretching an unrelated generic component to cover the new case.
-- A thin hook wrapper that leaves the JSX repeated across pages.
-- A shared component that leaks state or props whose only purpose is to accommodate one caller's edge case.
-
-If the same combination of a Popover, a Combobox, and a virtualized list appears on more than one page, that combination is a component, not a copy-paste.
-
-### Preserve JSX when the backend reshapes
-
-If a backend contract change breaks TypeScript in a view, do not trim the JSX to match the smaller shape. Extend the data hook to fill every field the JSX consumes with `null`, `false`, `0`, or empty defaults so the presentation keeps compiling.
-
-The JSX is the design record for the page. Deleting fields in response to a temporary backend reshape loses design intent and makes rollback lossy. Keep the presentation whole and let the data-layer mapper decide how to hydrate it.
-
-### Presentation-only frontend
-
-No hidden contract translation, no fallback business logic, no reimplementation of anything the backend already decides. If a shape needs to be transformed for the view, that mapping lives in a mapper module owned by the data layer, not scattered across components.
-
-If a component appears to be making a business decision, that decision belongs behind the operation, not in the browser.
-
-### Typed frontend data layer, organized by feature
-
-Use the project's selected typed contract client together with one standard query/cache layer. Centralize schema generation or introspection, scalar mappings, request execution, caching, invalidation, authentication behavior, and typed errors. Do not create a bespoke client abstraction or transport path for every query.
-
-Organize frontend data access **by feature**, not by technical artifact kind. A feature module should give each of these responsibilities one owner:
-
-- Reusable field selections or response contracts.
-- Query and mutation declarations.
-- Mappers from transport contracts to stable view shapes, including null/default hydration.
-- Query, mutation, cache-key, and invalidation hooks.
-
-A single shared executor should own raw transport, credentials, security headers, typed errors, unauthorized behavior, retries, and other cross-cutting policy. Feature hooks never fetch directly; they use that executor.
-
-This realizes the view-model and mapper rules above: the data layer maps contracts, one composed view-model supplies the component, and the component remains presentation-only. A new screen should pass through the project's feature data module, page-data/view-model layer, feature components, and thin route wiring. No raw client code or fetching in components, no field translation outside the mapper, and no hooks defined inline in routes or components.
-
-## Async Work And Accounting
-
-Asynchronous work should not force the wrong component to become the accounting system of record.
-
-When one component starts asynchronous work owned by another, the initiating component may report the synchronous side effect and any stable job reference it received. It must not invent final usage, storage, billing, or completion facts. The component performing the domain work owns its final usage facts; the accounting or control-plane owner handles reconciliation, aggregation, quota, billing, and durable audit records.
-
-For async provider work:
-
-- Emit stable references when they are available.
-- Do not block invocation completion on unrelated background completion unless the contract explicitly requires it.
-- Do not put credentials or secret payloads in completion metadata.
-- Let the system of record produce final accounting facts.
-- Make missing async references visible as an observability limitation, not a silent success.
-
-## Use The Data Model That Owns The Problem
-
-Choose storage and computation according to the shape of the problem and the architecture's designated source of truth. Do not repeatedly reconstruct one data model inside a store or application layer designed for another.
-
-When evaluating a feature, ask:
-
-- Is this naturally relational, document-shaped, graph-shaped, event-stream, search, or analytical work?
-- Is application code loading large amounts of data merely to reconstruct operations the owning store already supports?
-- Would the authoritative data system express the operation more directly, safely, and efficiently?
-
-If yes, implement the behavior in the owning data model rather than adding another cross-model workaround. For example, graph traversal, neighborhoods, paths, and communities belong in the graph system when the product architecture has one; transactional operational state still belongs in its transactional store.
-
-## Testing Must Match the Claim
-
-Testing should build confidence in layers. Isolated tests prove individual rules and failure boundaries. Integration tests prove that components behave correctly together. Realistic workload tests exercise the complexity, scale, ordering, state, and variation expected in actual use. End-to-end tests prove complete user-visible workflows through their real runtime boundaries.
-
-Evidence from one layer must not be presented as proof of another. Passing unit tests does not establish integration quality. A small synthetic benchmark does not establish general product quality. A mocked execution path does not prove the production path works.
-
-"Realistic" depends on the system being built. It may mean multiple records, longer inputs, concurrent operations, accumulated state, multi-step workflows, service failures, varied users, large datasets, sustained load, or combinations of these. Test design should reflect the conditions under which the component will actually operate.
-
-Evaluate the complete outcome relevant to that component: correct results, missing expected behavior, incorrect or unintended behavior, state changes, side effects, failure handling, latency, and resource use where applicable.
-
-Begin with precise isolated tests because they make defects diagnosable. Then compose those proven behaviors into increasingly realistic scenarios. Do not stop at isolated cases and describe them as system validation.
-
-The user wants regression and adversarial tests, not only happy-path tests.
-
-Tests should prove:
-
-- The old bug cannot return.
-- Incorrect inputs fail clearly.
-- Duplicate transport paths use the same operation behavior.
-- Response shape does not drift.
-- Edge cases are owned at the right layer.
-
-When moving behavior from a controller into operations, add operation-level tests. Keep HTTP tests focused on transport behavior and response shape.
-
-## Writing Good Tests
-
-The goal is confidence, not coverage. A test suite that reaches high line coverage by pinning implementation details is a liability.
-
-- **Test behavior, not implementation.** Exercise the public interface and observable results. Do not reach into internal fields or assert on private call sequences.
-- **Keep tests simple and focused.** Minimal setup, one clear intent, assertions that say what is being verified. If a reader cannot tell what a test proves from its name and body, rewrite it.
-- **Happy path first, then failure.** Establish that the normal case works before covering error conditions, then cover both.
-- **Mock only at real boundaries.** Mock external dependencies (network services, databases, third-party APIs), expensive operations, and hard-to-reproduce failures. Do not mock your own code or simple in-process logic when the real thing is fast and reliable. If writing mocks takes longer than writing the code, the design or the test is wrong.
-- **Generate mocks with the project's standard tool** instead of hand-writing them, so mocks track their interfaces.
-- **Name tests by scenario.** `TestCache_GetReturnsMissAfterExpiry` and `TestAdapter_StartFailsWhenCalledTwice` say what is proven; `TestStart`, `TestError`, and `TestCase1` do not.
-- **Structure each test as setup, execute, verify.**
-- **Be environment-aware.** Skip, with a stated reason, tests that need an environment that is not present, rather than letting them fail or pass vacuously.
-- **Test the contract.** When a type implements an interface, test that every method in the contract behaves as the contract promises.
-- **Separate unit from integration tests** so the fast suite runs constantly and the expensive suite runs deliberately.
-
-## No Test Cheating
-
-Tests are allowed to change when the intended contract changes. They should not be weakened simply to make a run green.
-
-Bad test fixes include:
-
-- Updating fixtures blindly without understanding the production contract.
-- Removing assertions that catch real drift.
-- Teaching tests to accept both the old and new shape when the product decision is a hard cutoff.
-- Mocking around a missing integration instead of exposing the missing boundary.
-- Making production behavior looser so an outdated test passes.
-
-Good test fixes explain why the expectation changed and keep adversarial coverage for the new contract.
-
-Two further rules that repeated failures have earned:
-
-- A test must never pin behavior production cannot deliver. If a fake implements an interface, method, or path that the production object lacks, the test is fiction: it stays green while every real deployment does something else. When wiring a fake, diff it against the production type it stands in for. The honest fix is either to wire the production path for real or to delete the phantom behavior and its test together — never to keep a green test for a capability that does not exist.
-- A load-bearing test proves itself by failing first. When a test exists to pin a specific fix or prevent a specific regression, break the code deliberately, watch the test fail, then restore and watch it pass. A regression test that has never been seen to fail proves nothing about what it guards. Report the fail-then-pass evidence, not just the green run.
-
-## Change Discipline
-
-Before changing code:
-
-- Read the surrounding code first.
-- Identify the current pattern.
-- Decide which module should own the behavior.
-- Avoid hard-coded fixes aimed only at the current repro.
-- Verify the source of truth instead of relying on memory, especially for contracts, client and command-line behavior, build artifacts, execution services, domain APIs, and cross-repository consumers.
-
-After changing code:
-
-- Remove the old path if it has been replaced.
-- Do not leave parallel implementations unless both are intentionally supported.
-- Run focused tests for the changed behavior.
-- Run a broader regression slice when shared response, scope, operations, or transport code changes.
-
-Once a plan has been approved under `AGENTS.md`, do not stop at an issue list. Continue through implementation, tests, and cleanup unless blocked by a real external dependency or explicitly paused. Before approval, the plan is the deliverable.
-
-## A Change In Cost Is A Change In Contract
-
-Every caller was written against the old cost profile of what it calls. When a function moves from instant to blocking, cheap to expensive, infallible to fallible, or in-process to cross-process, its signature may be unchanged while its contract is not — and the bugs land in the callers, not the function.
-
-The canonical failure: a hook is a no-op, so callers invoke it inline on a latency-sensitive thread while holding a global lock. Later the hook becomes a blocking cross-process call. Nothing in the diff of the hook is wrong; the system now freezes under the lock. The change that made the hook real was obligated to revisit every call site.
-
-When changing a cost profile, re-audit each caller for: what lock is held across the call, what thread or event loop it runs on, what timeout or failure it now needs to tolerate, and what assumed it could not fail. The established pattern for the expensive version usually already exists nearby (an off-thread teardown, a queued variant) — mirror it rather than inventing a new one.
-
-## External Reviews Are Requirements Input
-
-Reviews from automated reviewers, other models, or colleagues are input to the design, never prescriptions. The reviewer sees symptoms; the owner of the code decides the shape of the fix.
-
-Discipline for consuming a review:
-
-- Verify every checkable claim before accepting it. Read the cited line, run the repro, grep for the consumer. A review that cites line numbers that do not exist in current files is reviewing stale code — discard it and re-request against the current tree rather than arguing with its findings.
-- Separate the finding from the proposed fix. A finding can be real while the proposed fix is wrong-shaped — usually over-machined (a lock hierarchy where a rebind suffices, a handshake where identity already holds). Right-size the fix to the named failure, not to the reviewer's imagination of the failure.
-- When two reviews conflict, adjudicate by reading the source, not by trusting the more confident report.
-- Honest non-compliance beats fake compliance. If a requested item cannot be implemented correctly — a dependency lacks the hook, the semantics do not exist — report the mismatch explicitly with evidence. Do not invent a wrong-semantics mapping so a checklist line turns green.
-
-## Verification Is Independent Of The Author
-
-The author's green bar is necessary and not sufficient. Substantive change gets an adversarial pass whose explicit job is refutation: re-run the gates independently, read the diff end to end, and attack the specific claims the author made — with concrete failure scenarios, not vibes. A verifier that finds nothing on the first read has not read hard enough; a verifier that invents faults it cannot reproduce is equally useless.
-
-Verification must be proportional to risk. Irreversible data changes, public contracts, security boundaries, billing, releases, and external side effects justify stronger independent evidence. A reversible local development tool does not automatically justify immutable preregistration, one-shot execution markers, exhaustive source hashing, permanent raw captures, or repeated forensic review. Use the lightest verification that can expose the named risk.
-
-Do not repeatedly re-audit a stable conclusion without new evidence or a changed risk. Once the relevant failure is reproduced, fixed, and covered at the correct boundary, return attention to the production outcome.
-
-Drift from an agreed spec is failure unless justified — and justified deviation is correct, not disobedience. When a spec's enumeration contradicts its own stated criterion, the criterion wins; the deviation is reported with the reasoning, and the spec gets fixed. Silent compliance with a buggy spec and silent deviation from a good one are the same failure.
-
-## Decisions Are Recorded With Their Rationale
-
-Durable architecture and product decisions should live next to the code they govern, in a concise spec, decision record, or status document (never in code comments, which `AGENTS.md` restricts to actionable TODOs), stating the current decision, its reasoning, and what it superseded. Not every debugging step, test run, tool revision, or discarded experiment deserves a permanent ledger entry. Documentation must earn its maintenance cost just like code.
-
-A decision record is corrected in place when the decision changes. Prefer one current account over an append-only chain of superseded notes. Preserve history only when it is needed for an external obligation, an irreversible operation, or understanding a still-relevant constraint. A stale record stating a reversed decision is worse than no record because an agent may faithfully execute it.
-
-## Deletion And Cleanup Semantics
-
-Deletion is product behavior, not only a database operation. If a project, deployment, snapshot, asset, resource, or namespace can be deleted, the system should define what happens to dependent state.
-
-Before implementing deletion, identify:
-
-- Durable database rows.
-- Object storage assets.
-- Active deployments and snapshots.
-- Queued or scheduled work.
-- Credentials, bindings, and secrets.
-- Audit records and billing records.
-- Frontend-visible state.
-- External provider state that should or should not be touched.
-
-Prefer complete, explicit deletion semantics over partial cleanup that leaves hidden active state behind.
-
-## Release Completion Standard
-
-For release-oriented work, passing tests is not always the finish line. If the request includes release, patch, image, registry, deployment, or similar language, the work is complete only when the requested artifact has been produced and verified.
-
-This standard applies only after Git operations have been explicitly enabled and a push has been explicitly requested, as `AGENTS.md` requires. A release request alone does not unlock Git.
-
-For container release work, that means:
-
-- Commit the intended code.
-- Push the branch when requested.
-- Create and push the release tag when requested.
-- Build and push the expected image name and tags.
-- Inspect the registry artifact after pushing.
-- Report the exact commit, version, image tags, and digest.
-
-Do not treat a local build as equivalent to a pushed release artifact.
-
-## Design Pushback Expectations
-
-The user expects agents to be able to defend a design from the actual system behavior. If asked to argue for code, explain when it runs, what owns it, what failure mode it protects, and what would break if it were removed.
-
-Weak answers include:
-
-- Keeping code because it already exists.
-- Preserving a branch because it might be useful someday.
-- Claiming a design works without checking traces, tests, or callers.
-- Treating a question about ownership as a request for a quick patch.
-
-Good answers connect the implementation to the contract, runtime behavior, tests, and operational evidence. If the code does not carry its weight, say so and propose a cleaner removal or replacement.
-
-## What Future Agents Should Remember
-
-The user is not asking for patches that merely satisfy one failing test. They are asking for the system to become more coherent over time.
-
-When they push back, it is usually about ownership, consistency, hidden fallbacks, or a special case that should have been encapsulated. Treat that as design signal, not just preference.
-
-For service operations, the preferred shape is:
-
-```text
-transport adapter
-  -> application operation request
-  -> application operation
-  -> domain owner / authoritative storage
-  -> application operation response
-  -> shared transport response encoder
-```
-
-For a component-based frontend, the corresponding shape is:
-
-```text
-presentation component
-  -> one composed view-model
-  -> feature data hooks + shared state primitives
-  -> shared transport client / mapper
-  -> application operation response
-  -> presentation
-```
-
-If your change follows that shape, removes drift, and has regression tests, it is probably aligned with the user's coding profile.
+Report what changed, why the structure is appropriate, how it was verified, and any material remaining limitation. Keep the report proportional to the work. The implementation itself must carry the clarity and coherence promised here.
